@@ -1,0 +1,261 @@
+# Case Study 2 Group 4
+# Doğukan Araslı
+# Kaan Akman Çakmak
+# Tunahan Gülten
+
+# Uploading the necessary packages for linear regression
+library("tidyverse")
+library("gridExtra")
+library("readxl")
+library("qcc")
+
+# Reading the dataset
+dataset = read_excel('data.xlsx')
+
+# QUESTION 1
+# Creating contingency table of gender with Pages Visited
+# chisq.test function automatically calculates test statistic of independency test automatically
+# when the input is table datatype
+contin_table = table(dataset$Gender,dataset$`Pages Visited`)
+
+# Perform the chi squared test
+chisq.test(contin_table)
+
+# p-value is higher than 0.05, We fail to reject null hypothesis
+# We will continue our studies accepting gender and number of pages visited are independent
+
+
+# One-hot encoding of categorical variable gender for use of regression
+dataset$Gender[dataset$Gender == 'Male'] = 1
+dataset$Gender[dataset$Gender == 'Female'] = 0
+
+# Dropping the transaction order column since it is same with row index (which is the 1st column)
+dataset = dataset[,-1]
+
+# QUESTION 2
+# Part a
+data_female = dataset[dataset$Gender == 0,]
+data_male = dataset[dataset$Gender == 1,]
+
+ggplot() +
+  geom_point(aes(x = data_female$Age, y = data_female$`Revenue($)`),
+            colour = 'red') +
+  geom_point(aes(x = data_male$Age, y = data_male$`Revenue($)`),
+            colour = 'blue') + 
+  geom_line(aes(x = data_female$Age, y = predict(lm(`Revenue($)` ~ Age, data = data_female))),
+            colour = 'red', linetype = 'dashed') + 
+  geom_line(aes(x = data_male$Age, y = predict(lm(`Revenue($)` ~ Age, data = data_male))),
+            colour = 'blue', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Age') +
+  ylab('Response') +
+  xlab('Age')
+
+# Trends with respect to age seem to differ by gender Therefore, we will add the interaction
+# term to the model
+
+dataset['Age Gender Interaction'] = dataset$`Age` * as.numeric(dataset$Gender)
+
+ggplot() +
+  geom_point(aes(x = data_female$`Pages Visited`, y = data_female$`Revenue($)`),
+             colour = 'red') +
+  geom_point(aes(x = data_male$`Pages Visited`, y = data_male$`Revenue($)`),
+             colour = 'blue') + 
+  geom_line(aes(x = data_female$`Pages Visited`, y = predict(lm(`Revenue($)` ~ `Pages Visited`,
+                                                                data = data_female))),
+            colour = 'red', linetype = 'dashed') + 
+  geom_line(aes(x = data_male$`Pages Visited`, y = predict(lm(`Revenue($)` ~ `Pages Visited`,
+                                                              data = data_male))),
+            colour = 'blue', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Pages Visited') +
+  ylab('Response') +
+  xlab('Pages Visited')
+
+# Trends with respect to Pages visited seem to differ by gender Therefore, 
+# we will add the interaction term to the model
+
+dataset['PagesVisited Gender Interaction'] = dataset$`Pages Visited` * as.numeric(dataset$Gender)
+
+
+ggplot() +
+  geom_point(aes(x = data_female$`Time Spent (min)`, y = data_female$`Revenue($)`),
+             colour = 'red') +
+  geom_point(aes(x = data_male$`Time Spent (min)`, y = data_male$`Revenue($)`),
+             colour = 'blue') + 
+  geom_line(aes(x = data_female$`Time Spent (min)`, y = predict(lm(`Revenue($)` ~ `Time Spent (min)`,
+                                                                data = data_female))),
+            colour = 'red', linetype = 'dashed') + 
+  geom_line(aes(x = data_male$`Time Spent (min)`, y = predict(lm(`Revenue($)` ~ `Time Spent (min)`,
+                                                              data = data_male))),
+            colour = 'blue', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Time Spent (min)') +
+  ylab('Response') +
+  xlab('Time Spent (min)')
+
+# Trends with respect to Time Spent seem to differ by gender Therefore, 
+# we will add the interaction term to the model
+
+dataset['TimeSpent Gender Interaction'] = dataset$`Time Spent (min)` * as.numeric(dataset$Gender)
+
+
+ggplot() +
+  geom_point(aes(x = data_female$`Products Purchased`, y = data_female$`Revenue($)`),
+             colour = 'red') +
+  geom_point(aes(x = data_male$`Products Purchased`, y = data_male$`Revenue($)`),
+             colour = 'blue') + 
+  geom_line(aes(x = data_female$`Products Purchased`, y = predict(lm(`Revenue($)` ~ `Products Purchased`,
+                                                                   data = data_female))),
+            colour = 'red', linetype = 'dashed') + 
+  geom_line(aes(x = data_male$`Products Purchased`, y = predict(lm(`Revenue($)` ~ `Products Purchased`,
+                                                                 data = data_male))),
+            colour = 'blue', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Products Purchased') +
+  ylab('Response') +
+  xlab('Products Purchased')
+
+# Trends with respect to Products purchased seem to be the same by gender Therefore, 
+# we will not add the interaction term to the model
+
+# Part B
+
+ggplot() +
+  geom_point(aes(x = dataset$Age, y = dataset$`Revenue($)`),
+             colour = 'black') +
+  geom_line(aes(x = dataset$Age, y = predict(lm(`Revenue($)` ~ `Age`, data = dataset))),
+            colour = 'black', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Age') +
+  ylab('Response') +
+  xlab('Age')
+
+# We conclude that age vs. Revenue have not a non-linear relation ship between other
+
+ggplot() +
+  geom_point(aes(x = dataset$`Pages Visited`, y = dataset$`Revenue($)`),
+             colour = 'black') +
+  geom_line(aes(x = dataset$`Pages Visited`, y = predict(lm(`Revenue($)` ~ `Pages Visited`, 
+                                                            data = dataset))),
+            colour = 'black', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Pages Visited') +
+  ylab('Response') +
+  xlab('Pages Visited')
+
+# We conclude that Revenue vs Pages visited may have a non-linear relationship therefore,
+# will include the quadratic term
+
+dataset['Pages Visited 2'] = dataset$`Pages Visited`^2 
+
+ggplot() +
+  geom_point(aes(x = dataset$`Time Spent (min)`, y = dataset$`Revenue($)`),
+             colour = 'black') +
+  geom_line(aes(x = dataset$`Time Spent (min)`, y = predict(lm(`Revenue($)` ~ `Time Spent (min)`,
+                                                               data = dataset))),
+            colour = 'black', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Time Spent') +
+  ylab('Response') +
+  xlab('Time Spent')
+
+# We conclude that Revenue vs Time Spent may have a non-linear relationship therefore,
+# will include the quadratic term
+
+dataset['Time Spent 2'] = dataset$`Time Spent (min)`^2 
+
+ggplot() +
+  geom_point(aes(x = dataset$`Products Purchased`, y = dataset$`Revenue($)`),
+             colour = 'black') +
+  geom_line(aes(x = dataset$`Products Purchased`, y = predict(lm(`Revenue($)` ~ `Products Purchased`,
+                                                                 data = dataset))),
+            colour = 'black', linetype = 'dashed') +
+  ggtitle('Response Variable vs. Products purchased') +
+  ylab('Response') +
+  xlab('Products Purchased')
+
+#We conclude that Revenue vs Products Purchased may have a non-linear relationship, therefore
+#we include the quadratic term
+
+dataset['Products Purchased 2'] = dataset$`Products Purchased`^2
+
+# PART C and D
+
+# In order for backwardElimination function to work response variable must be in the last column:
+response = dataset$`Revenue($)`
+dataset = dataset[,-6]
+dataset['Revenue($)'] = response
+
+# A helper function for backward elimination that automatically 
+backwardElimination <- function(x, sl) {
+  # INPUTS: x --> dataframe
+  #         sl --> significance level of backward elimination
+  numVars = length(x)
+  for (i in c(1:numVars)){ # iterate numVars time
+    regressor = lm(formula = `Revenue($)` ~ ., data = x) #Fit the regression model to all variables
+    maxVar = max(coef(summary(regressor))[c(2:numVars), "Pr(>|t|)"]) #Take the var. with max p
+    if (maxVar > sl){ #if it is bigger than sl eliminate it
+      j = which(coef(summary(regressor))[c(2:numVars), "Pr(>|t|)"] == maxVar)
+      x = x[, -j]
+      numVars = numVars - 1
+    }
+    else {
+      break
+    }
+    #Intermediate steps of backward elimination
+    print(summary(regressor))
+    print(anova(regressor))
+    plot(regressor,1)
+    plot(regressor,2)
+    qcc(rstandard(regressor), type = "xbar.one", plot = TRUE)
+    hist(rstandard(regressor), main = "Histogram", xlab = "Standardized Residuals", ylab = "Frequency", breaks=9)
+  }
+  #Reporting the final step
+  print(summary(regressor))
+  print(anova(regressor))
+  plot(regressor,1)
+  plot(regressor,2)
+  qcc(rstandard(regressor), type = "xbar.one", plot = TRUE)
+  hist(rstandard(regressor), main = "Histogram", xlab = "Standardized Residuals", ylab = "Frequency", breaks=9)
+}
+
+# Calling the funcion
+backwardElimination(dataset, 0.05)
+
+#Fit a regression model without outliers and with the variables found in Backward Elimination
+dataset2 = dataset[-c(74),]
+regressor2 = lm(`Revenue($)` ~ `Age` + `Gender` + `Pages Visited`  + `Products Purchased` +
+                   `TimeSpent Gender Interaction` + `Pages Visited 2` + `Time Spent 2` +
+                   `Products Purchased 2`, data = dataset2)
+
+#New validation of the final regression model
+print(summary(regressor2))
+print(anova(regressor2))
+plot(regressor2,1)
+plot(regressor2,2)
+qcc(rstandard(regressor2), type = "xbar.one", plot = TRUE)
+hist(rstandard(regressor2), main = "Histogram", xlab = "Standardized Residuals", ylab = "Frequency", breaks=9)
+
+# QUESTION 3
+#Creating the dataframe of the new person
+s = data.frame(1,fix.empty.names = FALSE)
+s['Age'] = 25
+s['Gender'] = as.character(0)
+s['Pages Visited'] = 2
+s['Products Purchased'] = 4
+s['TimeSpent Gender Interaction'] = 0
+s['Pages Visited 2'] = 4
+s['Time Spent 2'] = 225
+s['Products Purchased 2'] = 16
+s = s[,-1]
+#Creating the confidence interval for mean
+predict(regressor2, newdata = s, interval = 'confidence')
+
+# QUESTION 4
+#Creating the dataframe of the new person
+p = data.frame(1,fix.empty.names = FALSE)
+p['Age'] = 32
+p['Gender'] = as.character(1)
+p['Pages Visited'] = 4
+p['Products Purchased'] = 2
+p['TimeSpent Gender Interaction'] = 21
+p['Pages Visited 2'] = 16
+p['Time Spent 2'] = 441
+p['Products Purchased 2'] = 4
+p = p[,-1]
+#Creating the confidence interval on prediction
+predict(regressor2, newdata = p, interval = 'prediction')
